@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    api project(':service-bootstrap')
+    api project(':service')
 }

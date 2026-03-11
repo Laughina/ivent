@@ -3,7 +3,5 @@ plugins {
 }
 
 dependencies {
-    api project(':service')
-
     implementation libs.gson
 }
