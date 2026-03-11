@@ -5,7 +5,9 @@ pluginManagement {
 rootProject.name = 'ivent'
 
 include 'service'
+include 'service-core'
 include 'service-appmost'
 include 'service-afishaykt'
 
-include 'service-core'
+include 'bot-api'
+include 'bot-core'
