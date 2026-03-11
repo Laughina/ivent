@@ -1,0 +1,9 @@
+plugins {
+    id 'java-conventions'
+}
+
+dependencies {
+    api project(':service')
+
+    implementation libs.gson
+}

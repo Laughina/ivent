@@ -1,0 +1,11 @@
+pluginManagement {
+    includeBuild 'build-logic'
+}
+
+rootProject.name = 'ivent'
+
+include 'service'
+include 'service-appmost'
+include 'service-afishaykt'
+
+include 'service-core'

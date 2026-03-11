@@ -1,0 +1,4 @@
+allprojects {
+    group = 'ru.laughina'
+    version = findProperty('revision') ?: '1.0.0'
+}

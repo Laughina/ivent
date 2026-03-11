@@ -1,0 +1,25 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+tasks {
+    shadowJar {
+        mergeServiceFiles('META-INF/services')
+        mergeServiceFiles('META-INF/annotations')
+
+        archiveFileName = "${project.name}-${project.version}.jar"
+        destinationDirectory = new File(project.rootDir, "output")
+
+        exclude('META-INF/*.SF')
+        exclude('META-INF/*.DSA')
+        exclude('META-INF/*.RSA')
+    }
+
+    clean {
+        delete "${project.rootDir}/output/${project.name}-${project.version}.jar"
+    }
+
+    build {
+        dependsOn shadowJar
+    }
+}
