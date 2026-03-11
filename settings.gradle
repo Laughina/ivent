@@ -5,9 +5,9 @@ pluginManagement {
 rootProject.name = 'ivent'
 
 include 'service'
-include 'service-core'
 include 'service-appmost'
 include 'service-afishaykt'
+include 'service-bootstrap'
 
-include 'bot-api'
-include 'bot-core'
+include 'telegram-bot-api'
+include 'telegram-bot'
