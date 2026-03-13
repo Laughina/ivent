@@ -1,6 +1,5 @@
 plugins {
     id 'java-conventions'
-    id 'shadow-conventions'
 }
 
 dependencies {
