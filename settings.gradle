@@ -9,5 +9,6 @@ include 'service-core'
 include 'service-appmost'
 include 'service-afishaykt'
 
-include 'telegram-bot-api'
-include 'telegram-bot'
+include 'platform-telegram'
+include 'platform-vkontakte'
+include 'platform-max'

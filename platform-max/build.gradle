@@ -4,5 +4,5 @@ plugins {
 }
 
 dependencies {
-    api project(':telegram-bot-api')
+    api project(':service-core')
 }
