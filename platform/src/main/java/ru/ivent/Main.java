@@ -186,12 +186,15 @@ public final class Main {
             CommandKeyboardButton btnList
     ) {
         var sb = new StringBuilder();
-        sb.append("<b>").append(escapeHtml(event.getTitle())).append("</b>\n\n");
+        sb.append("<b>")
+                .append(escapeHtml(event.getTitle()))
+                .append("</b>\n\n");
 
         if (event.getDescription() != null && !event.getDescription().isBlank()) {
             String desc = event.getDescription();
             if (desc.length() > 400) desc = desc.substring(0, 400) + "...";
-            sb.append(escapeHtml(desc)).append("\n\n");
+            sb.append(escapeHtml(desc))
+                    .append("\n\n");
         }
         if (event.getStartTime() != null) {
             sb.append("📆 ")
@@ -218,6 +221,7 @@ public final class Main {
         ctx.editMessage(new OutMessage.Builder()
                 .chat(ctx.chat())
                 .text(sb.toString())
+                .imageUrl(event.getImageUrl())
                 .keyboard(kb.build())
                 .disableLinksParsing(true)
                 .build());

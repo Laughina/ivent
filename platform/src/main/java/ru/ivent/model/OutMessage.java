@@ -19,6 +19,7 @@ public class OutMessage {
     Identity chat;
     Long reply;
     String text;
+    String imageUrl;
     InlineKeyboard keyboard;
     Attachment attachment;
 
@@ -35,16 +36,9 @@ public class OutMessage {
 
     public @NotNull Builder toBuilder() {
         return new Builder(
-                chat,
-                reply,
-                text,
-                keyboard,
-                attachment,
-                disableNotification,
-                keepForwardedMessages,
-                disableLinksParsing,
-                latitude,
-                longitude
+                chat, reply, text, imageUrl, keyboard, attachment,
+                disableNotification, keepForwardedMessages, disableLinksParsing,
+                latitude, longitude
         );
     }
 
@@ -59,6 +53,9 @@ public class OutMessage {
 
         @Setter
         String text;
+
+        @Setter
+        String imageUrl;
 
         @Setter
         InlineKeyboard keyboard;
@@ -106,7 +103,6 @@ public class OutMessage {
         public Builder chat(Identity chat) {
             this.chat = chat;
             this.reply = null;
-
             return this;
         }
 
@@ -118,18 +114,11 @@ public class OutMessage {
             if (chat == null) {
                 throw new IllegalStateException("Chat is required");
             }
-
-            if (text == null && attachment == null) {
-                throw new IllegalStateException("Text or attachment is required");
+            if (text == null && attachment == null && imageUrl == null) {
+                throw new IllegalStateException("Text, imageUrl or attachment is required");
             }
-
-            return new OutMessage(chat, reply, text, keyboard, attachment,
-                    disableNotification,
-                    keepForwarded,
-                    disableLinksParsing,
-                    latitude,
-                    longitude
-            );
+            return new OutMessage(chat, reply, text, imageUrl, keyboard, attachment,
+                    disableNotification, keepForwarded, disableLinksParsing, latitude, longitude);
         }
     }
 }

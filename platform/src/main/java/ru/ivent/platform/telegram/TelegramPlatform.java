@@ -136,9 +136,9 @@ public final class TelegramPlatform implements Platform {
         return attachment.createContent()
                 .thenApply(content -> switch (attachment.type()) {
                     case PHOTO -> telegramClient.sendPhoto().photo(attachment.fileName(), content)
-                            .caption(caption);
+                            .caption(caption).parseMode("HTML");
                     case DOCUMENT -> telegramClient.sendDocument().document(attachment.fileName(), content)
-                            .caption(caption);
+                            .caption(caption).parseMode("HTML");
                 });
     }
 
@@ -150,11 +150,21 @@ public final class TelegramPlatform implements Platform {
         }
 
         var attachment = message.getAttachment();
+        var imageUrl = message.getImageUrl();
 
-        CompletableFuture<TelegramSend<?>> sendFuture = attachment == null
-                ? completedFuture(telegramClient.sendMessage().text(message.getText()).parseMode("HTML"))
-                : sendAttachment(attachment, message.getText());
-
+        CompletableFuture<TelegramSend<?>> sendFuture;
+        if (attachment != null) {
+            sendFuture = sendAttachment(attachment, message.getText());
+        } else if (imageUrl != null) {
+            sendFuture = completedFuture(telegramClient.sendPhoto()
+                    .photoUrl(imageUrl)
+                    .caption(message.getText())
+                    .parseMode("HTML"));
+        } else {
+            sendFuture = completedFuture(telegramClient.sendMessage()
+                    .text(message.getText())
+                    .parseMode("HTML"));
+        }
         return sendFuture
                 .thenCompose(send -> {
                     send.chatId(peer.getValue());
@@ -199,11 +209,7 @@ public final class TelegramPlatform implements Platform {
         var oldMessage = message.getOutMessage();
 
         return editMessageContent(message.getMessageId(), oldMessage.getChat().getValue(),
-                text,
-                oldMessage.getAttachment(),
-                null,
-                null,
-                true);
+                text, null, oldMessage.getAttachment(), null, null, true);
     }
 
     @Override
@@ -211,32 +217,30 @@ public final class TelegramPlatform implements Platform {
         var oldMessage = message.getOutMessage();
 
         return editMessageContent(message.getMessageId(), oldMessage.getChat().getValue(),
-                newMessage.getText(),
-                oldMessage.getAttachment(),
-                newMessage.getAttachment(),
-                newMessage.getKeyboard(),
-                newMessage.isDisableLinksParsing());
+                newMessage.getText(), newMessage.getImageUrl(),
+                oldMessage.getAttachment(), newMessage.getAttachment(),
+                newMessage.getKeyboard(), newMessage.isDisableLinksParsing());
     }
 
     @Override
     public CompletableFuture<Void> editMessage(@NotNull InKeyboardCallback keyboardCallback, @NotNull OutMessage newMessage) {
         return editMessageContent(keyboardCallback.getReplyMessageId(), keyboardCallback.getChat().getValue(),
-                newMessage.getText(),
-                null,
-                newMessage.getAttachment(),
-                newMessage.getKeyboard(),
-                newMessage.isDisableLinksParsing());
+                newMessage.getText(), newMessage.getImageUrl(),
+                null, newMessage.getAttachment(),
+                newMessage.getKeyboard(), newMessage.isDisableLinksParsing());
     }
 
     private CompletableFuture<Void> editMessageContent(
             long messageId,
             long chatId,
             String text,
+            String imageUrl,
             Attachment oldAttachment,
             Attachment attachment,
             InlineKeyboard keyboard,
             boolean disableLinksParsing
     ) {
+
         if (attachment != null) {
             var editMessageMedia = telegramClient.editMessageMedia()
                     .messageId(messageId)
@@ -244,10 +248,6 @@ public final class TelegramPlatform implements Platform {
 
             if (keyboard != null) {
                 editMessageMedia.replyMarkup(TelegramInlineKeyboardMapper.INSTANCE.mapKeyboard(keyboard));
-            }
-
-            if (disableLinksParsing) {
-                editMessageMedia.linkPreviewOptions(LinkPreviewOptions.disabled());
             }
 
             var type = attachment.type().toString().toLowerCase();
@@ -258,9 +258,24 @@ public final class TelegramPlatform implements Platform {
                             .make()));
         }
 
+
+        if (imageUrl != null) {
+            var editMessageMedia = telegramClient.editMessageMedia()
+                    .messageId(messageId)
+                    .chatId(chatId)
+                    .mediaUrl("photo", imageUrl, text);
+
+            if (keyboard != null) {
+                editMessageMedia.replyMarkup(TelegramInlineKeyboardMapper.INSTANCE.mapKeyboard(keyboard));
+            }
+
+            return FutureUtils.asVoid(editMessageMedia.make());
+        }
+
+
         var telegramEdit = (oldAttachment == null)
-                ? telegramClient.editMessageText().text(text)
-                : telegramClient.editMessageCaption().caption(text);
+                ? telegramClient.editMessageText().text(text).parseMode("HTML")
+                : telegramClient.editMessageCaption().caption(text).parseMode("HTML");
 
         if (keyboard != null) {
             telegramEdit.replyMarkup(TelegramInlineKeyboardMapper.INSTANCE.mapKeyboard(keyboard));

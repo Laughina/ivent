@@ -24,4 +24,9 @@ public final class TelegramSendPhoto extends TelegramSend<TelegramSendPhoto> {
         params.setFile("photo", filename, content);
         return this;
     }
+
+    public TelegramSendPhoto photoUrl(String url) {
+        params.set("photo", url);
+        return this;
+    }
 }
