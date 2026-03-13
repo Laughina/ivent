@@ -1,0 +1,1 @@
+package ru.ivent.service.appmost.mapper;

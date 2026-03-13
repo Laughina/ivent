@@ -5,5 +5,12 @@ plugins {
 dependencies {
     api project(':service')
 
+    implementation libs.mapstruct.runtime
+    annotationProcessor libs.mapstruct.processor
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    annotationProcessor libs.lombok.binding
+
     implementation libs.gson
 }

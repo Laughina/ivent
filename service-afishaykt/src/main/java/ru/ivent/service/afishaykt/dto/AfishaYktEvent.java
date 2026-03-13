@@ -16,7 +16,7 @@ public class AfishaYktEvent {
     private long id;
 
     @SerializedName("name")
-    private String name;
+    private String title;
 
     @SerializedName("description")
     private String description;
@@ -41,6 +41,7 @@ public class AfishaYktEvent {
 
     @Data
     public static class AfishaYktPoster {
+
         @SerializedName("h200")
         private String h200;
 

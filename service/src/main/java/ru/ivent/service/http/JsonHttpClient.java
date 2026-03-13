@@ -31,9 +31,6 @@ public class JsonHttpClient {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
-    /**
-     * Выполните GET-запрос
-     */
     public <T> T get(String url, Class<T> typeClass) throws IOException, InterruptedException {
         logger.debug("GET {}", url);
 
@@ -48,9 +45,6 @@ public class JsonHttpClient {
         return GSON.fromJson(response.body(), typeClass);
     }
 
-    /**
-     * Тоже самое как и {@link #get(String, Class)}, но возвращает raw JSON текст
-     */
     public String getRaw(String url) throws IOException, InterruptedException {
         HttpRequest request = httpRequest(url);
         HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());

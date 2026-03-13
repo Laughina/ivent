@@ -24,7 +24,6 @@ public class AppmostEvent {
     @SerializedName("poster")
     private String poster;
 
-    /** Short URL slug or full link */
     @SerializedName("url")
     private String url;
 
@@ -34,11 +33,9 @@ public class AppmostEvent {
     @SerializedName("category")
     private AppmostCategory category;
 
-    /** Unix timestamp (seconds) */
     @SerializedName("date_start")
     private Long dateStart;
 
-    /** Unix timestamp (seconds) */
     @SerializedName("date_end")
     private Long dateEnd;
 

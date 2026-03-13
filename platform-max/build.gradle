@@ -1,9 +1,0 @@
-plugins {
-    id 'java-conventions'
-    id 'shadow-conventions'
-}
-
-dependencies {
-    api project(':platform')
-    api project(':service-core')
-}

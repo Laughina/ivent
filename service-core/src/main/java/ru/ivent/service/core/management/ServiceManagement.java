@@ -37,7 +37,7 @@ public class ServiceManagement {
     }
 
     public void start() {
-        logger.info("Starting with {} service(s), interval={}min", services.size(), scheduler.intervalMinutes());
+        logger.info("Starting with {} service(s), interval={}min", services.size(), scheduler.getIntervalMinutes());
         scheduler.start();
     }
 

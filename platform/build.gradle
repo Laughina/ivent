@@ -3,5 +3,12 @@ plugins {
 }
 
 dependencies {
+    annotationProcessor libs.mapstruct.processor
+
     api project(':service-core')
+
+    api platform(libs.jackson.bom)
+    api libs.jackson.databind
+
+    api libs.mapstruct.runtime
 }

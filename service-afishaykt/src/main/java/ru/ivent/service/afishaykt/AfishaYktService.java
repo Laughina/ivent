@@ -1,7 +1,6 @@
 package ru.ivent.service.afishaykt;
 
 import ru.ivent.service.ApiService;
-import ru.ivent.service.afishaykt.dto.AfishaYktEvent;
 import ru.ivent.service.afishaykt.dto.AfishaYktResponse;
 import ru.ivent.service.afishaykt.mapper.AfishaYktEventMapper;
 import ru.ivent.service.http.JsonHttpClient;
@@ -19,17 +18,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Laughina
- */
 @Slf4j
 public class AfishaYktService implements ApiService {
 
     private static final String SERVICE_NAME = "afishaykt";
-
     private static final String BASE_URL = "https://afisha.ykt.ru/api/events/get";
-    private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern(DATE_FORMAT);
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private record Endpoint(String urlSuffix, String category) {
 
@@ -51,7 +45,8 @@ public class AfishaYktService implements ApiService {
         Map<String, Event> merged = new LinkedHashMap<>();
 
         for (Endpoint endpoint : endpoints) {
-            fetchEndpoint(endpoint).forEach(e -> merged.putIfAbsent(e.id(), e));
+            fetchEndpoint(endpoint)
+                    .forEach(event -> merged.putIfAbsent(event.getId(), event));
         }
 
         List<Event> result = new ArrayList<>(merged.values());
@@ -74,22 +69,21 @@ public class AfishaYktService implements ApiService {
     private @NotNull List<Event> fetchEndpoint(Endpoint endpoint) {
         try {
             AfishaYktResponse response = http.get(endpoint.url(), AfishaYktResponse.class);
-            if (response == null || response.events() == null) {
-                logger.warn("[AfishaYktService] Empty response for '{}' endpoint", endpoint.category());
+            if (response == null || response.getEvents() == null) {
+                logger.warn("Empty response for '{}' endpoint", endpoint.category());
                 return List.of();
             }
 
-            List<Event> events = new ArrayList<>();
-            for (AfishaYktEvent dto : response.events()) {
-                events.add(AfishaYktEventMapper.toEvent(dto, endpoint.category()));
-            }
+            List<Event> events = response.getEvents().stream()
+                    .map(event -> AfishaYktEventMapper.INSTANCE.toEvent(event, endpoint.category()))
+                    .toList();
 
-            logger.debug("[AfishaYktService] '{}' → {} events", endpoint.category(), events.size());
+            logger.debug("'{}' → {} events", endpoint.category(), events.size());
             return events;
 
-        } catch (Exception ex) {
-            logger.error("[AfishaYktService] Failed to fetch '{}' ({}): {}",
-                    endpoint.category(), endpoint.url(), ex.getMessage(), ex);
+        } catch (Exception exception) {
+            logger.error("Failed to fetch '{}' ({}): {}",
+                    endpoint.category(), endpoint.url(), exception.getMessage(), exception);
             return List.of();
         }
     }

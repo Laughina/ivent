@@ -6,4 +6,8 @@ dependencies {
     api project(':service')
 
     implementation libs.gson
+    implementation libs.mapstruct.runtime
+
+    annotationProcessor libs.mapstruct.processor
+    annotationProcessor libs.lombok
 }

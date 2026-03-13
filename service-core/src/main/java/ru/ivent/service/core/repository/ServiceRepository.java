@@ -3,9 +3,8 @@ package ru.ivent.service.core.repository;
 import ru.ivent.service.core.cache.ServiceCache;
 import ru.ivent.service.model.Event;
 
-import lombok.RequiredArgsConstructor;
-
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,10 +12,7 @@ import java.util.Optional;
 /**
  * @author Laughina
  */
-@RequiredArgsConstructor
-public class ServiceRepository {
-
-    private final ServiceCache cache;
+public record ServiceRepository(ServiceCache cache) {
 
     public List<Event> findAll() {
         return cache.getAll();
@@ -26,28 +22,29 @@ public class ServiceRepository {
         return cache.get(serviceName);
     }
 
-    public List<Event> findByCategory(String category) {
+    public @NotNull @Unmodifiable List<Event> findByCategory(String category) {
         return cache.getAll().stream()
-                .filter(event -> category.equalsIgnoreCase(event.category()))
+                .filter(event -> category.equalsIgnoreCase(event.getCategory()))
                 .toList();
     }
 
-    public List<Event> findByServiceAndCategory(String serviceName, String category) {
+    public @NotNull @Unmodifiable List<Event> findByServiceAndCategory(String serviceName, String category) {
         return cache.get(serviceName).stream()
-                .filter(event -> category.equalsIgnoreCase(event.category()))
+                .filter(event -> category.equalsIgnoreCase(event.getCategory()))
                 .toList();
     }
 
-    public Optional<Event> findById(String id) {
+    public @NotNull Optional<Event> findById(String id) {
         return cache.getAll().stream()
-                .filter(event -> id.equals(event.id()))
+                .filter(event -> id.equals(event.getId()))
                 .findFirst();
     }
 
-    public List<Event> search(@NotNull String query) {
+    public @NotNull @Unmodifiable List<Event> search(@NotNull String query) {
         String queryLowerCase = query.toLowerCase();
         return cache.getAll().stream()
-                .filter(event -> event.title() != null && event.title().toLowerCase().contains(queryLowerCase))
+                .filter(event -> event.getTitle() != null
+                        && event.getTitle().toLowerCase().contains(queryLowerCase))
                 .toList();
     }
 

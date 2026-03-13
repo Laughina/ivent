@@ -3,55 +3,66 @@ package ru.ivent.service.appmost.mapper;
 import ru.ivent.service.appmost.dto.AppmostEvent;
 import ru.ivent.service.model.Event;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.mapstruct.factory.Mappers;
+import org.jetbrains.annotations.NotNull;
+
 import java.time.Instant;
 
 /**
- * Converts a raw {@link AppmostEvent} DTO into the unified {@link Event} model.
- *
  * @author Laughina
  */
-public final class AppmostEventMapper {
+@Mapper
+public interface AppmostEventMapper {
 
-    private static final String SOURCE      = "appmost";
-    private static final String BASE_URL    = "https://api.appmost.ru";
-    private static final String CURRENCY    = "RUB";
+    AppmostEventMapper INSTANCE = Mappers.getMapper(AppmostEventMapper.class);
 
-    private AppmostEventMapper() {}
+    @Mapping(target = "id",             source = "dto", qualifiedByName = "resolveId")
+    @Mapping(target = "source",         constant = "appmost")
+    @Mapping(target = "title",          source = "title")
+    @Mapping(target = "description",    source = "description")
+    @Mapping(target = "imageUrl",       source = "poster")
+    @Mapping(target = "eventUrl",       source = "dto", qualifiedByName = "resolveUrl")
+    @Mapping(target = "venue",          source = "dto", qualifiedByName = "resolveVenue")
+    @Mapping(target = "category",       source = "dto", qualifiedByName = "resolveCategory")
+    @Mapping(target = "startTime",      source = "dateStart", qualifiedByName = "toInstant")
+    @Mapping(target = "endTime",        source = "dateEnd",   qualifiedByName = "toInstant")
+    @Mapping(target = "minPrice",       source = "minPrice")
+    @Mapping(target = "currency",       constant = "RUB")
+    @Mapping(target = "ageRestriction", source = "ageRestriction")
+    @Mapping(target = "tags",           source = "tags")
+    @Mapping(target = "city",           ignore = true)
+    @Mapping(target = "cachedAt",       expression = "java(java.time.Instant.now())")
+    Event toEvent(AppmostEvent dto);
 
-    public static Event toEvent(AppmostEvent dto) {
-        return Event.builder()
-                .id(SOURCE + ":" + dto.id())
-                .source(SOURCE)
-                .title(dto.title())
-                .description(dto.description())
-                .imageUrl(dto.poster())
-                .eventUrl(resolveUrl(dto.url()))
-                .venue(dto.place() != null ? dto.place().title() : null)
-                .category(resolveCategory(dto))
-                .startTime(toInstant(dto.dateStart()))
-                .endTime(toInstant(dto.dateEnd()))
-                .minPrice(dto.minPrice())
-                .currency(CURRENCY)
-                .ageRestriction(dto.ageRestriction())
-                .tags(dto.tags())
-                .cachedAt(Instant.now())
-                .build();
+    @Named("resolveId")
+    default String resolveId(@NotNull AppmostEvent dto) {
+        return "appmost:" + dto.getId();
     }
 
-    // -------------------------------------------------------------------------
-
-    private static Instant toInstant(Long epochSeconds) {
+    @Named("toInstant")
+    default Instant toInstant(Long epochSeconds) {
         return epochSeconds != null ? Instant.ofEpochSecond(epochSeconds) : null;
     }
 
-    private static String resolveUrl(String url) {
+    @Named("resolveUrl")
+    default String resolveUrl(@NotNull AppmostEvent dto) {
+        String url = dto.getUrl();
         if (url == null) return null;
-        return url.startsWith("http") ? url : BASE_URL + url;
+        return url.startsWith("http") ? url : "https://api.appmost.ru" + url;
     }
 
-    private static String resolveCategory(AppmostEvent dto) {
-        if (dto.category() == null) return null;
-        String alias = dto.category().alias();
-        return alias != null ? alias.toUpperCase() : dto.category().title();
+    @Named("resolveVenue")
+    default String resolveVenue(@NotNull AppmostEvent dto) {
+        return dto.getPlace() != null ? dto.getPlace().getTitle() : null;
+    }
+
+    @Named("resolveCategory")
+    default String resolveCategory(@NotNull AppmostEvent dto) {
+        if (dto.getCategory() == null) return null;
+        String alias = dto.getCategory().getAlias();
+        return alias != null ? alias.toUpperCase() : dto.getCategory().getTitle();
     }
 }

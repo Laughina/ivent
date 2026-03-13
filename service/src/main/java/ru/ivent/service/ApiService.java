@@ -11,16 +11,8 @@ import java.util.List;
  */
 public interface ApiService {
 
-    /**
-     * Получить все события из API.
-     *
-     * @return неизменяемый список событий
-     */
     @Unmodifiable
     List<Event> fetchEvents();
 
-    /**
-     * Логическое имя, идентифицирующее данную службу
-     */
     String serviceName();
 }

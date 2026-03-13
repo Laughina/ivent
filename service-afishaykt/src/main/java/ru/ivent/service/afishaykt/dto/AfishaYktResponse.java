@@ -23,6 +23,7 @@ public class AfishaYktResponse {
 
     @Data
     public static class AfishaYktStatus {
+
         @SerializedName("code")
         private int code;
 
