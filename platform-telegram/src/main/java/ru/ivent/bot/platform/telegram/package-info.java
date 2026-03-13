@@ -1,1 +1,0 @@
-package ru.ivent.bot.platform.telegram;
