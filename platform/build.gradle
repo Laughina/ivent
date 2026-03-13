@@ -13,3 +13,13 @@ dependencies {
 
     api libs.mapstruct.runtime
 }
+
+tasks {
+    shadowJar {
+        manifest {
+            attributes(
+                'Main-Class': 'ru.ivent.Main'
+            )
+        }
+    }
+}
