@@ -1,0 +1,1 @@
+package ru.ivent.service.afishaykt.mapper;

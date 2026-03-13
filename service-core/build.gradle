@@ -4,6 +4,8 @@ plugins {
 
 dependencies {
     api project(':service')
+    api project(':service-appmost')
+    api project(':service-afishaykt')
 
     implementation libs.gson
 }
