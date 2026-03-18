@@ -24,5 +24,6 @@ public interface TelegramInlineKeyboardMapper {
 
     @Mapping(target = "text", source = "label")
     @Mapping(target = "callbackData", source = "data")
+    @Mapping(target = "url", source = "url")
     InlineKeyboardButton mapKeyboardButton(ru.ivent.model.InlineKeyboardButton keyboardButton);
 }

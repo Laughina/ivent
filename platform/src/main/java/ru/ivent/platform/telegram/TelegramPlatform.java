@@ -326,6 +326,14 @@ public final class TelegramPlatform implements Platform {
     }
 
     @Override
+    public CompletableFuture<Void> deleteMessage(@NotNull InKeyboardCallback keyboardCallback) {
+        return FutureUtils.asVoid(telegramClient.deleteMessage()
+                .chatId(keyboardCallback.getChat().getValue())
+                .messageId(keyboardCallback.getReplyMessageId())
+                .make());
+    }
+
+    @Override
     public CompletableFuture<Void> answerCallback(@NotNull InKeyboardCallback keyboardCallback, @Nullable String text) {
         var answerCallbackQuery = telegramClient.answerCallbackQuery()
                 .queryId(keyboardCallback.getId());
@@ -371,10 +379,10 @@ public final class TelegramPlatform implements Platform {
 
             var telegram = new TelegramLongPoll(logger, telegramClient);
             telegram.start(this::handleUpdate);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            logger.error("Failed to start Telegram LongPoll", e);
+        } catch (Exception exception) {
+            logger.error("Failed to start Telegram LongPoll", exception);
         }
     }
 }

@@ -33,6 +33,8 @@ public interface Platform extends Runnable {
 
     CompletableFuture<Void> editMessage(InKeyboardCallback message, OutMessage newMessage);
 
+    CompletableFuture<Void> deleteMessage(InKeyboardCallback keyboardCallback);
+
     CompletableFuture<IdentityName> getName(IdentityHolder identity);
 
     CompletableFuture<HttpResponse> getAvatar(IdentityHolder identity, PhotoSize photoSize);

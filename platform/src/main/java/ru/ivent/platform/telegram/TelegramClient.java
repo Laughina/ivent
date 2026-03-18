@@ -3,6 +3,7 @@ package ru.ivent.platform.telegram;
 import ru.ivent.http.HttpClient;
 import ru.ivent.http.HttpResponse;
 import ru.ivent.platform.telegram.method.TelegramAnswerCallbackQuery;
+import ru.ivent.platform.telegram.method.TelegramDeleteMessage;
 import ru.ivent.platform.telegram.method.TelegramEditMessageCaption;
 import ru.ivent.platform.telegram.method.TelegramEditMessageMedia;
 import ru.ivent.platform.telegram.method.TelegramEditMessageText;
@@ -83,6 +84,10 @@ public final class TelegramClient {
 
     public TelegramSendMessage sendMessage() {
         return new TelegramSendMessage(this);
+    }
+
+    public TelegramDeleteMessage deleteMessage() {
+        return new TelegramDeleteMessage(this);
     }
 
     public TelegramAnswerCallbackQuery answerCallbackQuery() {

@@ -30,7 +30,12 @@ public class InlineKeyboard {
         }
 
         public Builder button(String label, String data, String color) {
-            button(new InlineKeyboardButton(label, data, color));
+            button(new InlineKeyboardButton(label, data, color, null));
+            return this;
+        }
+
+        public Builder buttonUrl(String label, String url) {
+            button(new InlineKeyboardButton(label, null, null, url));
             return this;
         }
 

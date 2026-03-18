@@ -82,6 +82,10 @@ public final class KeyboardContext implements ArgumentProvider {
         return platform.sendMessage(message);
     }
 
+    public CompletableFuture<Void> deleteMessage() {
+        return platform.deleteMessage(keyboardCallback);
+    }
+
     public CompletableFuture<Void> editMessage(OutMessage message) {
         return platform.editMessage(keyboardCallback, message);
     }

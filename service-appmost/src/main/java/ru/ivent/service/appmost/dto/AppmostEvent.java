@@ -2,75 +2,47 @@ package ru.ivent.service.appmost.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+import lombok.AccessLevel;
 import lombok.Data;
-
-import java.util.List;
+import lombok.experimental.FieldDefaults;
 
 /**
  * @author Laughina
  */
 @Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppmostEvent {
 
     @SerializedName("id")
-    private long id;
+    long id;
 
-    @SerializedName("title")
-    private String title;
+    @SerializedName("name")
+    String name;
 
     @SerializedName("description")
-    private String description;
+    String description;
 
     @SerializedName("poster")
-    private String poster;
+    String poster;
 
-    @SerializedName("url")
-    private String url;
+    @SerializedName("link")
+    String link;
 
-    @SerializedName("place")
-    private AppmostPlace place;
+    @SerializedName("afisha_type")
+    String afishaType;
 
-    @SerializedName("category")
-    private AppmostCategory category;
+    @SerializedName("afisha_type_slug")
+    String afishaTypeSlug;
 
-    @SerializedName("date_start")
-    private Long dateStart;
-
-    @SerializedName("date_end")
-    private Long dateEnd;
+    @SerializedName("end_date")
+    String endDate;
 
     @SerializedName("min_price")
-    private Double minPrice;
+    Long minPriceKopecks;
 
-    @SerializedName("age_restriction")
-    private String ageRestriction;
+    @SerializedName("age_rating")
+    String ageRating;
 
-    @SerializedName("tags")
-    private List<String> tags;
-
-    @Data
-    public static class AppmostPlace {
-
-        @SerializedName("id")
-        private long id;
-
-        @SerializedName("title")
-        private String title;
-
-        @SerializedName("address")
-        private String address;
-    }
-
-    @Data
-    public static class AppmostCategory {
-
-        @SerializedName("id")
-        private long id;
-
-        @SerializedName("title")
-        private String title;
-
-        @SerializedName("alias")
-        private String alias;
-    }
+    @SerializedName("duration")
+    Integer durationMinutes;
 }
