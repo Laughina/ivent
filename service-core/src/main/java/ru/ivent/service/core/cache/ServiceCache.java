@@ -2,8 +2,11 @@ package ru.ivent.service.core.cache;
 
 import ru.ivent.service.model.Event;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +16,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Laughina
  */
 @Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ServiceCache {
 
-    private final Map<String, List<Event>> cache = new ConcurrentHashMap<>();
+    Map<String, List<Event>> cache = new ConcurrentHashMap<>();
+    Map<String, Instant> updatedAt = new ConcurrentHashMap<>();
 
     public void put(String serviceName, List<Event> events) {
         cache.put(serviceName, Collections.unmodifiableList(events));
+        updatedAt.put(serviceName, Instant.now());
         logger.debug("Updated '{}': {} events", serviceName, events.size());
     }
 
@@ -32,12 +38,18 @@ public class ServiceCache {
                 .toList();
     }
 
+    public Instant getUpdatedAt(String serviceName) {
+        return updatedAt.get(serviceName);
+    }
+
     public void invalidate(String serviceName) {
         cache.remove(serviceName);
+        updatedAt.remove(serviceName);
     }
 
     public void invalidateAll() {
         cache.clear();
+        updatedAt.clear();;
     }
 
     public boolean has(String serviceName) {

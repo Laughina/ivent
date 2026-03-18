@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -68,7 +69,7 @@ public final class Main {
 
         var repository = management.getRepository();
 
-        registerCommands(bot, repository);
+        registerCommands(bot, repository, management);
 
         bot.start();
 
@@ -120,7 +121,11 @@ public final class Main {
         return true;
     }
 
-    private static void registerCommands(@NotNull Bot bot, ServiceRepository repository) {
+    private static void registerCommands(
+            @NotNull Bot bot,
+            ServiceRepository repository,
+            @NotNull ServiceManagement management
+    ) {
         var commandManager = bot.getCommandManager();
 
         CommandKeyboardButton[] btnMenu   = new CommandKeyboardButton[1];
@@ -165,6 +170,16 @@ public final class Main {
             @Override
             public void execute(CommandContext context) {
                 context.sendMessage(buildMainMenu(context.getMessage().getChat(), btnList[0]));
+            }
+        });
+
+        commandManager.register(new Command("bot", List.of()) {
+            @Override
+            public void execute(CommandContext context) {
+                context.sendMessage(new OutMessage.Builder()
+                        .chat(context.getMessage().getChat())
+                        .text(buildStatMessage(management))
+                        .build());
             }
         });
     }
@@ -390,7 +405,7 @@ public final class Main {
                     .filter(event -> event.getTitle() != null && hasTag(event, "recommended"))
                     .toList();
             case "popular" -> repository.findAll().stream()
-                    .filter(event -> event.getTitle() != null && hasTag(event, "popular") || hasTag(event, "recommended"))
+                    .filter(event -> event.getTitle() != null && hasTag(event, "popular"))
                     .toList();
             case "soon" -> repository.findAll().stream()
                     .filter(event -> event.getTitle() != null && hasTag(event, "soon") && event.getStartTime() != null)
@@ -426,6 +441,97 @@ public final class Main {
             case "TOUR"     -> "🗺 Туры";
             default         -> "📅 События";
         };
+    }
+
+    private static @NotNull String buildStatMessage(@NotNull ServiceManagement management) {
+        var scheduler = management.getScheduler();
+        var cache = management.getCache();
+        var services = management.getServices();
+
+        Duration uptime = Duration.between(scheduler.getStartedAt(), Instant.now());
+        String uptimeStr = formatDuration(uptime);
+
+        long lastFetchEpoch = scheduler.getLastFetchAt().get();
+        String lastFetchStr = lastFetchEpoch == 0 ? "ещё не было"
+                : formatAgo(Duration.between(Instant.ofEpochSecond(lastFetchEpoch), Instant.now()));
+
+        long secsUntilNext = scheduler.secondsUntilNextFetch();
+        String nextFetchStr = secsUntilNext <= 0 ? "прямо сейчас"
+                : formatDuration(Duration.ofSeconds(secsUntilNext));
+
+        int totalCycles = scheduler.getFetchCycleCount().get();
+
+        var sb = new StringBuilder();
+        sb.append("⚙️ Информация о боте:\n");
+        sb.append("– Версия: v1.0.2-beta.").append("\n");
+        sb.append("– Окружение: beta").append("\n");
+        sb.append("– Время работы: ").append(uptimeStr).append("\n");
+
+        sb.append("\n⏳ Информация о планировщике:\n");
+        sb.append("– Циклов парсинга: ").append(totalCycles).append("\n");
+        sb.append("– Последний парс: ").append(lastFetchStr).append(" назад\n");
+        sb.append("– Следующий парс: через ").append(nextFetchStr).append("\n");
+        sb.append("– Интервал: каждые ").append(scheduler.getIntervalMinutes()).append(" мин\n");
+
+        sb.append("\n\uD83D\uDD0E Источники данных:");
+        int grandTotal = 0;
+        for (var service : services) {
+            String name = service.serviceName();
+            int count = cache.get(name).size();
+            // int errors = scheduler.getErrorCounts().getOrDefault(name, new java.util.concurrent.atomic.AtomicInteger(0)).get();
+            Instant updated = cache.getUpdatedAt(name);
+            String updatedStr = updated == null ? "—" : formatAgo(Duration.between(updated, Instant.now()));
+
+            grandTotal += count;
+            sb.append("\n— <b>").append(name).append("</b>\n");
+            sb.append("  • Событий: ").append(count).append("\n");
+            sb.append("  • Обновлено: ").append(updatedStr).append(" назад");
+//            if (errors > 0) {
+//                sb.append("  • Ошибок: ").append(errors);
+//            }
+        }
+
+        sb.append("\n- Итого в кэше: ").append(grandTotal).append(" событий\n");
+
+        var repository = management.getRepository();
+        var byCategory = repository.findAll().stream()
+                .filter(event -> event.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                        event -> categoryLabel(event.getCategory()),
+                        Collectors.counting()
+                ));
+
+        if (!byCategory.isEmpty()) {
+            sb.append("\n\uD83D\uDCC1 По категориям:\n");
+            byCategory.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .forEach(entry ->
+                            sb.append("  • ").append(entry.getKey())
+                                    .append(": ").append(entry.getValue()).append("\n"));
+        }
+
+        return sb.toString();
+    }
+
+    private static @NotNull String formatDuration(@NotNull Duration duration) {
+        long days = duration.toDays();
+        long hours = duration.toHoursPart();
+        long minutes = duration.toMinutesPart();
+        long seconds = duration.toSecondsPart();
+        if (days > 0) return days + " д. " + hours + " ч " + minutes + " мин.";
+        if (hours > 0) return hours + " ч. " + minutes + " мин.";
+        if (minutes > 0) return minutes + " мин. " + seconds + " с.";
+        return seconds + " с.";
+    }
+
+    private static @NotNull String formatAgo(@NotNull Duration duration) {
+        long minutes = duration.toMinutes();
+        long hours = duration.toHours();
+        long days = duration.toDays();
+        if (days > 0) return days + " д. " + duration.toHoursPart() + " ч.";
+        if (hours > 0) return hours + " ч. " + duration.toMinutesPart() + " мин.";
+        if (minutes > 0) return minutes + " мин";
+        return duration.toSecondsPart() + " с.";
     }
 
     private static @NotNull String escapeHtml(String text) {
