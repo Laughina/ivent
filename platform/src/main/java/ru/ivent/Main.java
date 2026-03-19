@@ -130,6 +130,9 @@ public final class Main {
         CommandKeyboardButton[] btnDetail = new CommandKeyboardButton[1];
         CommandKeyboardButton[] btnToggle = new CommandKeyboardButton[1];
         CommandKeyboardButton[] btnBack   = new CommandKeyboardButton[1];
+        CommandKeyboardButton[] btnSearchPage   = new CommandKeyboardButton[1];
+        CommandKeyboardButton[] btnSearchToggle = new CommandKeyboardButton[1];
+        CommandKeyboardButton[] btnSearchBack   = new CommandKeyboardButton[1];
 
         btnMenu[0] = commandManager.registerKeyboardButton("menu", context -> {
             context.deleteMessage()
@@ -169,10 +172,41 @@ public final class Main {
             String category = context.argument(1);
             int    page     = context.argumentAs(2, Integer.class).orElse(0);
             String filters  = context.rawArgument(3).map(Object::toString).orElse("");
+
+            boolean fromSearch = category.startsWith("__search__");
+            CommandKeyboardButton backBtn = fromSearch ? btnSearchBack[0] : btnBack[0];
+
             repository.findById(eventId).ifPresentOrElse(
-                    event -> showDetail(context, event, category, page, filters, btnBack[0]),
+                    event -> showDetail(context, event, category, page, filters, backBtn),
                     () -> context.answerCallback("Событие не найдено")
             );
+        });
+
+        btnSearchPage[0] = commandManager.registerKeyboardButton("search_page", context -> {
+            String query   = context.argument(0);
+            int    page    = context.argumentAs(1, Integer.class).orElse(0);
+            String filters = context.rawArgument(2).map(Object::toString).orElse("");
+            showSearch(context, repository, query, page, filters, true,
+                    btnSearchPage[0], btnMenu[0], btnDetail[0], btnSearchToggle[0]);
+        });
+
+        btnSearchToggle[0] = commandManager.registerKeyboardButton("search_toggle", context -> {
+            String query      = context.argument(0);
+            String filterKey  = context.argument(1);
+            int    page       = context.argumentAs(2, Integer.class).orElse(0);
+            String filters    = context.rawArgument(3).map(Object::toString).orElse("");
+            String newFilters = toggleFilter(filters, filterKey);
+            showSearch(context, repository, query, page, newFilters, true,
+                    btnSearchPage[0], btnMenu[0], btnDetail[0], btnSearchToggle[0]);
+        });
+
+        btnSearchBack[0] = commandManager.registerKeyboardButton("search_back", context -> {
+            String query   = context.argument(0);
+            int    page    = context.argumentAs(1, Integer.class).orElse(0);
+            String filters = context.rawArgument(2).map(Object::toString).orElse("");
+            context.answerCallback(null);
+            showSearch(context, repository, query, page, filters, false,
+                    btnSearchPage[0], btnMenu[0], btnDetail[0], btnSearchToggle[0]);
         });
 
         commandManager.register(new Command("start", List.of()) {
@@ -189,6 +223,24 @@ public final class Main {
                         .chat(context.getMessage().getChat())
                         .text(buildStatMessage(management))
                         .build());
+            }
+        });
+
+        commandManager.register(new Command("search", List.of()) {
+            @Override
+            public void execute(CommandContext context) {
+                String text  = context.getMessage().getText();
+                String query = text == null ? "" : text.replaceFirst("^/search\\s*", "").trim();
+                if (query.isBlank()) {
+                    context.sendMessage(new OutMessage.Builder()
+                            .chat(context.getMessage().getChat())
+                            .text("🔍 Введи поисковый запрос после команды.\n\n— Пример: /search концерт")
+                            .build()
+                    );
+                    return;
+                }
+                showSearchFromCommand(context, repository, query,
+                        btnSearchPage[0], btnMenu[0], btnDetail[0], btnSearchToggle[0], btnSearchBack[0]);
             }
         });
     }
@@ -227,7 +279,7 @@ public final class Main {
                 if (norm.isEmpty()) return true;
                 try {
                     return Integer.parseInt(norm) < 18;
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException exception) {
                     return true;
                 }
             });
@@ -321,9 +373,8 @@ public final class Main {
 
         List<Event> pageItems = events.subList(page * PAGE_SIZE, Math.min((page + 1) * PAGE_SIZE, total));
 
-        String header     = categoryLabel(category) + " в Якутске";
-        String filterHint = filters.isEmpty() ? "" : "\n<i>Фильтры: " + filterLabels(filters) + "</i>";
-        String text       = header + filterHint + "\n\nВыберите мероприятие, чтобы узнать подробности:";
+        String header = categoryLabel(category) + " в Якутске";
+        String text   = header + "\n\nВыберите мероприятие, чтобы узнать подробности:";
 
         var kb = new InlineKeyboard.Builder();
 
@@ -343,9 +394,9 @@ public final class Main {
         }
         kb.row();
 
-        kb.button(filterToggleLabel(FILTER_DATE,  filters), btnToggle.asPayload(category, FILTER_DATE,  page, filtersStr))
+        kb.button(filterToggleLabel(FILTER_DATE, filters), btnToggle.asPayload(category, FILTER_DATE, page, filtersStr))
                 .button(filterToggleLabel(FILTER_PRICE, filters), btnToggle.asPayload(category, FILTER_PRICE, page, filtersStr))
-                .button(filterToggleLabel(FILTER_AGE,   filters), btnToggle.asPayload(category, FILTER_AGE,   page, filtersStr))
+                .button(filterToggleLabel(FILTER_AGE, filters), btnToggle.asPayload(category, FILTER_AGE, page, filtersStr))
                 .row();
 
         OutMessage message = new OutMessage.Builder()
@@ -572,10 +623,153 @@ public final class Main {
         return duration.toSecondsPart() + " с.";
     }
 
+    private static void showSearchFromCommand(
+            CommandContext context,
+            ServiceRepository repository,
+            String query,
+            CommandKeyboardButton btnSearchPage,
+            CommandKeyboardButton btnMenu,
+            CommandKeyboardButton btnDetail,
+            CommandKeyboardButton btnSearchToggle,
+            CommandKeyboardButton btnSearchBack
+    ) {
+        Set<String> filters = new HashSet<>();
+        List<Event> events  = applyFilters(searchEvents(repository, query), filters);
+        int total = events.size();
+
+        if (total == 0) {
+            context.sendMessage(new OutMessage.Builder()
+                    .chat(context.getMessage().getChat())
+                    .text("⚠️ По запросу <b>" + escapeHtml(query) + "</b> ничего не найдено.")
+                    .build());
+            return;
+        }
+
+        OutMessage message = buildSearchMessage(
+                context.getMessage().getChat(), query, events, 0, "", false,
+                btnSearchPage, btnMenu, btnDetail, btnSearchToggle);
+
+        context.sendMessage(message);
+    }
+
+    private static void showSearch(
+            KeyboardContext context,
+            ServiceRepository repository,
+            String query,
+            int page,
+            String filtersStr,
+            boolean editInPlace,
+            CommandKeyboardButton btnSearchPage,
+            CommandKeyboardButton btnMenu,
+            CommandKeyboardButton btnDetail,
+            CommandKeyboardButton btnSearchToggle
+    ) {
+        Set<String> filters = parseFilters(filtersStr);
+        List<Event> events  = applyFilters(searchEvents(repository, query), filters);
+        int total = events.size();
+
+        if (total == 0) {
+            context.answerCallback("⚠️ Ничего не найдено");
+            return;
+        }
+
+        OutMessage message = buildSearchMessage(
+                context.chat(), query, events, page, filtersStr, editInPlace,
+                btnSearchPage, btnMenu, btnDetail, btnSearchToggle);
+
+        if (editInPlace) {
+            context.editMessage(message);
+        } else {
+            context.deleteMessage().thenCompose(v -> context.sendMessage(message));
+        }
+        context.answerCallback(null);
+    }
+
+    private static @NotNull OutMessage buildSearchMessage(
+            IdentityHolder chat,
+            String query,
+            @NotNull List<Event> events,
+            int page,
+            String filtersStr,
+            boolean editInPlace,
+            CommandKeyboardButton btnSearchPage,
+            CommandKeyboardButton btnMenu,
+            CommandKeyboardButton btnDetail,
+            CommandKeyboardButton btnSearchToggle
+    ) {
+        Set<String> filters = parseFilters(filtersStr);
+        int total      = events.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) total / PAGE_SIZE));
+        page = Math.max(0, Math.min(page, totalPages - 1));
+
+        List<Event> pageItems = events.subList(page * PAGE_SIZE, Math.min((page + 1) * PAGE_SIZE, total));
+
+        String text = "🔍 Результаты поиска: <b>" + escapeHtml(query) + "</b>"
+                + "\nНайдено: " + total
+                + "\n\nВыберите мероприятие, чтобы узнать подробности:";
+
+        var kb = new InlineKeyboard.Builder();
+
+        for (Event event : pageItems) {
+            String label = event.getTitle();
+            if (event.getCategory() != null) {
+                label = categoryLabel(event.getCategory()) + "  " + event.getTitle();
+                if (label.length() > 64) label = event.getTitle();
+            }
+            kb.button(label, btnDetail.asPayload(event.getId(), "__search__" + query, page, filtersStr)).row();
+        }
+
+        boolean hasPrev = page > 0;
+        boolean hasNext = page < totalPages - 1;
+
+        if (hasPrev) {
+            kb.button("◀️", btnSearchPage.asPayload(query, page - 1, filtersStr));
+        }
+        kb.button("🏠", btnMenu.asPayload());
+        if (hasNext) {
+            kb.button("▶️", btnSearchPage.asPayload(query, page + 1, filtersStr));
+        }
+        kb.row();
+
+        kb.button(filterToggleLabel(FILTER_DATE,  filters), btnSearchToggle.asPayload(query, FILTER_DATE, page, filtersStr))
+                .button(filterToggleLabel(FILTER_PRICE, filters), btnSearchToggle.asPayload(query, FILTER_PRICE, page, filtersStr))
+                .button(filterToggleLabel(FILTER_AGE,   filters), btnSearchToggle.asPayload(query, FILTER_AGE, page, filtersStr))
+                .row();
+
+        return new OutMessage.Builder()
+                .chat(chat)
+                .text(text)
+                .keyboard(kb.build())
+                .build();
+    }
+
+    private static @NotNull List<Event> searchEvents(
+            @NotNull ServiceRepository repository,
+            @NotNull String query
+    ) {
+        String text = query.toLowerCase(Locale.ROOT).trim();
+        if (text.isBlank()) return List.of();
+
+        return repository.findAll().stream()
+                .filter(event -> event.getTitle() != null)
+                .filter(event -> {
+                    String title = event.getTitle().toLowerCase(Locale.ROOT);
+                    if (title.contains(text)) return true;
+                    String desc = event.getDescription();
+                    return desc != null && desc.toLowerCase(Locale.ROOT).contains(text);
+                })
+                .sorted(Comparator.comparingInt((Event event) -> {
+                    String title = event.getTitle().toLowerCase(Locale.ROOT);
+                    return title.contains(text) ? 0 : 1;
+                }).thenComparing(Event::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
     private static @NotNull String escapeHtml(String text) {
         if (text == null) return "";
         return text.replace("&", "&amp;")
                 .replace("<", "&lt;")
-                .replace(">", "&gt;");
+                .replace(">", "&gt;")
+                .replace("&nbsp;", " ");
     }
 }
