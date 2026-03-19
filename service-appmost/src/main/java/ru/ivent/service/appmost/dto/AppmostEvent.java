@@ -19,6 +19,9 @@ public class AppmostEvent {
     @SerializedName("name")
     String name;
 
+    @SerializedName("type")
+    String type;
+
     @SerializedName("description")
     String description;
 
@@ -33,6 +36,9 @@ public class AppmostEvent {
 
     @SerializedName("afisha_type_slug")
     String afishaTypeSlug;
+
+    @SerializedName("genres")
+    String genres;
 
     @SerializedName("end_date")
     String endDate;

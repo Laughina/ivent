@@ -1,7 +1,7 @@
-package ru.ivent.service.core.repository;
+package ru.ivent.service.repository;
 
-import ru.ivent.service.core.cache.ServiceCache;
-import ru.ivent.service.model.Event;
+import ru.ivent.service.cache.ServiceCache;
+import ru.ivent.service.api.model.Event;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;

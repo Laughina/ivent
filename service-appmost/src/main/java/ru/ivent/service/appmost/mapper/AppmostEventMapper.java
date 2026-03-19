@@ -1,7 +1,7 @@
 package ru.ivent.service.appmost.mapper;
 
 import ru.ivent.service.appmost.dto.AppmostEvent;
-import ru.ivent.service.model.Event;
+import ru.ivent.service.api.model.Event;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -25,7 +25,7 @@ public interface AppmostEventMapper {
     @Mapping(target = "id",             source = "dto", qualifiedByName = "resolveId")
     @Mapping(target = "source",         constant = "appmost")
     @Mapping(target = "title",          source = "name")
-    @Mapping(target = "description",    source = "description")
+    @Mapping(target = "description",    source = "dto", qualifiedByName = "resolveDescription")
     @Mapping(target = "imageUrl",       source = "poster")
     @Mapping(target = "eventUrl",       source = "link")
     @Mapping(target = "venue",          ignore = true)
@@ -43,6 +43,13 @@ public interface AppmostEventMapper {
     @Named("resolveId")
     default String resolveId(@NotNull AppmostEvent dto) {
         return "appmost:" + dto.getId();
+    }
+
+    @Named("resolveDescription")
+    default String resolveDescription(@NotNull AppmostEvent dto) {
+        if (dto.getDescription() != null && !dto.getDescription().isBlank()) return dto.getDescription();
+        if (dto.getGenres() != null && !dto.getGenres().isBlank()) return dto.getGenres();
+        return null;
     }
 
     @Named("endDateToInstant")
@@ -65,22 +72,50 @@ public interface AppmostEventMapper {
 
     @Named("resolveCategory")
     default String resolveCategory(@NotNull AppmostEvent dto) {
+        if ("release".equals(dto.getType())) return "CINEMA";
+
         String slug = dto.getAfishaTypeSlug();
-        if (slug == null) return dto.getAfishaType();
-        return switch (slug) {
-            case "kino", "cinema"         -> "CINEMA";
-            case "teatr", "theatre"       -> "THEATRE";
-            case "shou", "show"           -> "SHOW";
-            case "sport"                  -> "SPORT";
-            case "dlia-detei", "children" -> "CHILDREN";
-            case "vecerinki", "party"     -> "PARTY";
-            case "koncerty"               -> "CONCERT";
-            case "muzei"                  -> "MUSEUM";
-            case "master-klassy"          -> "WORKSHOP";
-            case "kvizy-i-kvesty"         -> "QUEST";
-            case "aktivnyi-otdyx"         -> "OUTDOOR";
-            case "tours"                  -> "TOUR";
-            default                       -> slug.toUpperCase();
-        };
+        if (slug != null && !slug.isBlank()) {
+            return switch (slug) {
+                case "kino", "cinema"         -> "CINEMA";
+                case "teatr", "theatre"       -> "THEATRE";
+                case "shou", "show"           -> "SHOW";
+                case "sport"                  -> "SPORT";
+                case "dlia-detei", "children" -> "CHILDREN";
+                case "vecerinki", "party"     -> "PARTY";
+                case "koncerty"               -> "CONCERT";
+                case "muzei"                  -> "MUSEUM";
+                case "master-klassy"          -> "WORKSHOP";
+                case "kvizy-i-kvesty"         -> "QUEST";
+                case "aktivnyi-otdyx"         -> "OUTDOOR";
+                case "tours"                  -> "TOUR";
+                case "obuchenie"              -> "EDUCATION";
+                case "mirovaya-scena"         -> "WORLD";
+                default                       -> slug.toUpperCase();
+            };
+        }
+
+        String type = dto.getAfishaType();
+        if (type != null) {
+            return switch (type) {
+                case "Кино"            -> "CINEMA";
+                case "Театр"           -> "THEATRE";
+                case "Шоу"             -> "SHOW";
+                case "Спорт"           -> "SPORT";
+                case "Для детей"       -> "CHILDREN";
+                case "Вечеринки"       -> "PARTY";
+                case "Концерты"        -> "CONCERT";
+                case "Музеи"           -> "MUSEUM";
+                case "Мастер-классы"   -> "WORKSHOP";
+                case "Квизы и квесты"  -> "QUEST";
+                case "Активный отдых"  -> "OUTDOOR";
+                case "Туры"            -> "TOUR";
+                case "Обучение"        -> "EDUCATION";
+                case "Мировая сцена"   -> "WORLD";
+                default                -> type.toUpperCase();
+            };
+        }
+
+        return null;
     }
 }

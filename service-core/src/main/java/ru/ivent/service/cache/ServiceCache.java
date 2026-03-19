@@ -1,6 +1,6 @@
-package ru.ivent.service.core.cache;
+package ru.ivent.service.cache;
 
-import ru.ivent.service.model.Event;
+import ru.ivent.service.api.model.Event;
 
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;

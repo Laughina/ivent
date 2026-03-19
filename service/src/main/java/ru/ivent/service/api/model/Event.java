@@ -1,4 +1,4 @@
-package ru.ivent.service.model;
+package ru.ivent.service.api.model;
 
 import lombok.Data;
 import lombok.Builder;

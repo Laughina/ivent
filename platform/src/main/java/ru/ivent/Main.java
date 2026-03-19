@@ -9,9 +9,9 @@ import ru.ivent.model.InlineKeyboard;
 import ru.ivent.model.OutMessage;
 import ru.ivent.service.afishaykt.AfishaYktService;
 import ru.ivent.service.appmost.AppmostService;
-import ru.ivent.service.core.management.ServiceManagement;
-import ru.ivent.service.core.repository.ServiceRepository;
-import ru.ivent.service.model.Event;
+import ru.ivent.service.management.ServiceManagement;
+import ru.ivent.service.repository.ServiceRepository;
+import ru.ivent.service.api.model.Event;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,11 +38,11 @@ public final class Main {
 
     private static final int PAGE_SIZE = 8;
 
-    private static final String FILTER_DATE  = "date";
+    private static final String FILTER_DATE = "date";
     private static final String FILTER_PRICE = "price";
-    private static final String FILTER_AGE   = "age";
-
+    private static final String FILTER_AGE = "age";
     private static final String CONFIG_FILE = "config.properties";
+
     private static String botToken;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter
@@ -103,16 +103,13 @@ public final class Main {
 
         try (InputStream input = Files.newInputStream(configFilePath)) {
             properties.load(input);
-            logger.info("Config file loaded successfully: {}", configFilePath.toAbsolutePath());
         } catch (IOException exception) {
-            logger.error("Error loading config file: {}", exception.getMessage());
             return false;
         }
 
         botToken = properties.getProperty("bot.token");
 
         if (botToken == null || botToken.isEmpty()) {
-            logger.error("Bot token not found in config.properties");
             return false;
         }
 
@@ -132,6 +129,7 @@ public final class Main {
         CommandKeyboardButton[] btnList   = new CommandKeyboardButton[1];
         CommandKeyboardButton[] btnDetail = new CommandKeyboardButton[1];
         CommandKeyboardButton[] btnToggle = new CommandKeyboardButton[1];
+        CommandKeyboardButton[] btnBack   = new CommandKeyboardButton[1];
 
         btnMenu[0] = commandManager.registerKeyboardButton("menu", context -> {
             context.deleteMessage()
@@ -143,7 +141,8 @@ public final class Main {
             String category = context.argument(0);
             int    page     = context.argumentAs(1, Integer.class).orElse(0);
             String filters  = context.rawArgument(2).map(Object::toString).orElse("");
-            showList(context, repository, category, page, filters, btnList[0], btnMenu[0], btnDetail[0], btnToggle[0]);
+            showList(context, repository, category, page, filters, true,
+                    btnList[0], btnMenu[0], btnDetail[0], btnToggle[0]);
         });
 
         btnToggle[0] = commandManager.registerKeyboardButton("filter_toggle", context -> {
@@ -152,7 +151,17 @@ public final class Main {
             int    page       = context.argumentAs(2, Integer.class).orElse(0);
             String filters    = context.rawArgument(3).map(Object::toString).orElse("");
             String newFilters = toggleFilter(filters, filterKey);
-            showList(context, repository, category, page, newFilters, btnList[0], btnMenu[0], btnDetail[0], btnToggle[0]);
+            showList(context, repository, category, page, newFilters, true,
+                    btnList[0], btnMenu[0], btnDetail[0], btnToggle[0]);
+        });
+
+        btnBack[0] = commandManager.registerKeyboardButton("back", context -> {
+            String category = context.argument(0);
+            int    page     = context.argumentAs(1, Integer.class).orElse(0);
+            String filters  = context.rawArgument(2).map(Object::toString).orElse("");
+            context.answerCallback(null);
+            showList(context, repository, category, page, filters, false,
+                    btnList[0], btnMenu[0], btnDetail[0], btnToggle[0]);
         });
 
         btnDetail[0] = commandManager.registerKeyboardButton("detail", context -> {
@@ -161,7 +170,7 @@ public final class Main {
             int    page     = context.argumentAs(2, Integer.class).orElse(0);
             String filters  = context.rawArgument(3).map(Object::toString).orElse("");
             repository.findById(eventId).ifPresentOrElse(
-                    event -> showDetail(context, event, category, page, filters, btnList[0]),
+                    event -> showDetail(context, event, category, page, filters, btnBack[0]),
                     () -> context.answerCallback("Событие не найдено")
             );
         });
@@ -254,11 +263,27 @@ public final class Main {
                         .row()
                         .button("🎬 Кино", btnList.asPayload("CINEMA", 0))
                         .button("🎭 Театр", btnList.asPayload("THEATRE", 0))
-                        .button("🎭 Шоу", btnList.asPayload("SHOW", 0))
+                        .button("🎵 Концерты", btnList.asPayload("CONCERT", 0))
                         .row()
-                        .button("🏆 Спорт", btnList.asPayload("SPORT", 0))
+                        .button("🏅 Спорт", btnList.asPayload("SPORT", 0))
+                        .button("🌿 Активный отдых", btnList.asPayload("OUTDOOR", 0))
                         .button("👶 Детям", btnList.asPayload("CHILDREN", 0))
+                        .row()
                         .button("🎉 Вечеринки", btnList.asPayload("PARTY", 0))
+                        .button("🧠 Квизы", btnList.asPayload("QUIZ", 0))
+                        .button("🧩 Квесты", btnList.asPayload("QUEST", 0))
+                        .row()
+                        .button("🎨 Мастер-классы", btnList.asPayload("WORKSHOP", 0))
+                        .button("🖼 Выставки", btnList.asPayload("EXPO", 0))
+                        .button("🏛 Музеи", btnList.asPayload("MUSEUM", 0))
+                        .row()
+                        .button("🤝 Встречи", btnList.asPayload("MEETINGS", 0))
+                        .button("📚 Обучение", btnList.asPayload("EDUCATION", 0))
+                        .button("🗺 Туры", btnList.asPayload("TOUR", 0))
+                        .row()
+                        .button("🌐 Зарубежное", btnList.asPayload("FOREIGN", 0))
+                        .button("🌍 Мировая сцена", btnList.asPayload("WORLD", 0))
+                        .button("🎪 Разное", btnList.asPayload("OTHER", 0))
                         .row()
                         .button("👤 Профиль", "noop")
                         .button("⚙️ Настройки", "noop")
@@ -275,6 +300,7 @@ public final class Main {
             String category,
             int page,
             String filtersStr,
+            boolean editInPlace,
             CommandKeyboardButton btnList,
             CommandKeyboardButton btnMenu,
             CommandKeyboardButton btnDetail,
@@ -328,7 +354,11 @@ public final class Main {
                 .keyboard(kb.build())
                 .build();
 
-        context.deleteMessage().thenCompose(v -> context.sendMessage(message));
+        if (editInPlace) {
+            context.editMessage(message);
+        } else {
+            context.deleteMessage().thenCompose(v -> context.sendMessage(message));
+        }
         context.answerCallback(null);
     }
 
@@ -338,7 +368,7 @@ public final class Main {
             String category,
             int page,
             String filters,
-            CommandKeyboardButton btnList
+            CommandKeyboardButton btnBack
     ) {
         var sb = new StringBuilder();
         sb.append("<b>").append(escapeHtml(event.getTitle())).append("</b>\n\n");
@@ -365,7 +395,7 @@ public final class Main {
         if (event.getEventUrl() != null) {
             kb.buttonUrl("🎟 Купить билет / Подробнее", event.getEventUrl()).row();
         }
-        kb.button("◀️", btnList.asPayload(category, page, filters)).row();
+        kb.button("◀️ К списку", btnBack.asPayload(category, page, filters)).row();
 
         context.editMessage(new OutMessage.Builder()
                 .chat(context.chat())
@@ -438,8 +468,16 @@ public final class Main {
             case "QUEST"    -> "🧩 Квесты и квизы";
             case "WORKSHOP" -> "🎨 Мастер-классы";
             case "OUTDOOR"  -> "🌿 Активный отдых";
-            case "TOUR"     -> "🗺 Туры";
-            default         -> "📅 События";
+            case "TOUR"      -> "🗺 Туры";
+            case "EDUCATION" -> "📚 Обучение";
+            case "WORLD"     -> "🌍 Мировая сцена";
+            case "OTHER"     -> "🎪 Разное";
+            case "MEETINGS"  -> "🤝 Встречи";
+            case "QUIZ"      -> "🧠 Квизы";
+            case "EXPO"      -> "🖼 Выставки";
+            case "FOREIGN"   -> "🌐 Зарубежное";
+            case "REALSPORT" -> "🏅 Спорт";
+            default          -> "📅 События";
         };
     }
 
@@ -476,7 +514,7 @@ public final class Main {
         sb.append("\n\uD83D\uDD0E Источники данных:");
         int grandTotal = 0;
         for (var service : services) {
-            String name = service.serviceName();
+            String name = service.getServiceName();
             int count = cache.get(name).size();
             // int errors = scheduler.getErrorCounts().getOrDefault(name, new java.util.concurrent.atomic.AtomicInteger(0)).get();
             Instant updated = cache.getUpdatedAt(name);
@@ -491,7 +529,7 @@ public final class Main {
 //            }
         }
 
-        sb.append("\n- Итого в кэше: ").append(grandTotal).append(" событий\n");
+        sb.append("\n\n- Итого в кэше: ").append(grandTotal).append(" событий\n");
 
         var repository = management.getRepository();
         var byCategory = repository.findAll().stream()

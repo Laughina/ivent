@@ -1,4 +1,4 @@
-package ru.ivent.service.http;
+package ru.ivent.service.api.http;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

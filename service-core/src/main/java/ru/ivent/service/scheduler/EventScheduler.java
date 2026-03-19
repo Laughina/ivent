@@ -1,14 +1,14 @@
-package ru.ivent.service.core.scheduler;
+package ru.ivent.service.scheduler;
 
-import lombok.experimental.NonFinal;
-import ru.ivent.service.ApiService;
-import ru.ivent.service.core.cache.ServiceCache;
-import ru.ivent.service.model.Event;
+import ru.ivent.service.api.ApiService;
+import ru.ivent.service.cache.ServiceCache;
+import ru.ivent.service.api.model.Event;
 
 import lombok.Getter;
 import lombok.AccessLevel;
 import lombok.extern.slf4j.Slf4j;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +64,7 @@ public class EventScheduler {
         this.cache = cache;
         this.intervalMinutes = intervalMinutes;
 
-        services.forEach(service -> errorCounts.put(service.serviceName(), new AtomicInteger(0)));
+        services.forEach(service -> errorCounts.put(service.getServiceName(), new AtomicInteger(0)));
     }
 
     public void start() {
@@ -76,7 +76,7 @@ public class EventScheduler {
         );
         logger.info("Started — interval: {} min, services: {}", intervalMinutes,
                 services.stream()
-                        .map(ApiService::serviceName)
+                        .map(ApiService::getServiceName)
                         .toList());
     }
 
@@ -104,29 +104,31 @@ public class EventScheduler {
     }
 
     private void fetchAll() {
-        logger.info("Starting fetch cycle #{} for {} service(s)…",
-                fetchCycleCount.get() + 1, services.size());
+        int cycle = fetchCycleCount.get() + 1;
+        long start = System.currentTimeMillis();
+        logger.info("Starting fetch cycle #{} for {} service(s)…", cycle, services.size());
 
         List<CompletableFuture<Void>> futures = services.stream()
                 .map(service -> CompletableFuture.runAsync(() -> fetchOne(service), fetchPool))
                 .toList();
 
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .whenComplete((v, throwable) -> {
-                    if (throwable != null) {
-                        logger.error("Unexpected error during fetch cycle", throwable);
-                    } else {
-                        fetchCycleCount.incrementAndGet();
-                        lastFetchAt.set(Instant.now().getEpochSecond());
-                        logger.info("Fetch cycle complete. Cache: {}", cache);
-                    }
-                });
+        try {
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).get();
+            fetchCycleCount.incrementAndGet();
+            lastFetchAt.set(Instant.now().getEpochSecond());
+            logger.info("Fetch cycle #{} complete in {}ms. Cache: {}",
+                    cycle, System.currentTimeMillis() - start, cache);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            logger.warn("Fetch cycle #{} interrupted", cycle);
+        } catch (ExecutionException exception) {
+            logger.error("Fetch cycle #{} failed: {}", cycle, exception.getCause().getMessage(), exception.getCause());
+        }
     }
 
     private void fetchOne(@NotNull ApiService service) {
-        String name = service.serviceName();
+        String name = service.getServiceName();
         try {
-            logger.debug("Fetching '{}'…", name);
             List<Event> events = service.fetchEvents();
             cache.put(name, events);
             logger.info("'{}' → {} events cached", name, events.size());

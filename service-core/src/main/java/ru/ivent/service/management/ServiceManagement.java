@@ -1,9 +1,9 @@
-package ru.ivent.service.core.management;
+package ru.ivent.service.management;
 
-import ru.ivent.service.ApiService;
-import ru.ivent.service.core.cache.ServiceCache;
-import ru.ivent.service.core.repository.ServiceRepository;
-import ru.ivent.service.core.scheduler.EventScheduler;
+import ru.ivent.service.api.ApiService;
+import ru.ivent.service.cache.ServiceCache;
+import ru.ivent.service.repository.ServiceRepository;
+import ru.ivent.service.scheduler.EventScheduler;
 
 import lombok.Getter;
 import lombok.AccessLevel;

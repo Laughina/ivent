@@ -1,7 +1,7 @@
 package ru.ivent.service.afishaykt.mapper;
 
 import ru.ivent.service.afishaykt.dto.AfishaYktEvent;
-import ru.ivent.service.model.Event;
+import ru.ivent.service.api.model.Event;
 
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
@@ -67,10 +67,10 @@ public interface AfishaYktEventMapper {
     default @Nullable String resolveEventUrl(@NotNull AfishaYktEvent dto) {
         if (isNotBlank(dto.getBuyButtonLink())) return dto.getBuyButtonLink();
         AfishaYktEvent.AfishaYktSeance seance = firstSeance(dto);
-        if (seance == null) return BASE_URL + "/event/" + dto.getId();
+        if (seance == null) return BASE_URL + "/events/view?id=" + dto.getId();
         if (isNotBlank(seance.getBuyButtonLink())) return seance.getBuyButtonLink();
         if (isNotBlank(seance.getSaleUrl())) return seance.getSaleUrl();
-        return BASE_URL + "/event/" + dto.getId();
+        return BASE_URL + "/events/view?id=" + dto.getId();
     }
 
     @Named("resolveVenue")
